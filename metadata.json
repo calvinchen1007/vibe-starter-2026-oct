@@ -1,0 +1,6 @@
+{
+  "name": "The New York Times - Digital Broadsheet Edition",
+  "description": "Authentic digital broadsheet edition of The New York Times featuring breaking news, front page journalism, opinion columnists, business reportage, and playable puzzles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

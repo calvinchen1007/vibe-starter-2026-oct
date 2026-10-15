@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper-pure: #ffffff;
+  --color-rule-light: #e2e2e2;
+  --color-rule-dark: #121212;
+  --color-live-breaking-red: #d0021b;
+  --color-opinion-wash: #faf0ea;
+  --color-surface-container-low: #f4f3f3;
+  --color-surface-container: #eeeeee;
+  --color-surface-container-high: #e8e8e8;
+  --color-surface-container-highest: #e2e2e2;
+  --color-on-surface: #1a1c1c;
+  --color-on-surface-variant: #444748;
+  --color-secondary: #5e5e5e;
+  --color-byline-muted: #666666;
+
+  --font-masthead: "Libre Caslon Text", Georgia, serif;
+  --font-headline-lead: "Libre Caslon Text", Georgia, serif;
+  --font-headline-lg: "Libre Caslon Text", Georgia, serif;
+  --font-headline-md: "Libre Caslon Text", Georgia, serif;
+  --font-headline-sm: "Libre Caslon Text", Georgia, serif;
+  --font-body-lg: "Source Serif 4", Georgia, serif;
+  --font-body-md: "Source Serif 4", Georgia, serif;
+  --font-body-sm: "Source Serif 4", Georgia, serif;
+  --font-label-section: "Libre Franklin", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-label-byline: "Libre Franklin", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-caption: "Libre Franklin", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #ffffff;
+    color: #1a1c1c;
+  }
+}
+
+.nyt-blackletter {
+  font-family: 'UnifrakturMaguntia', serif;
+}
+
+/* Custom newspaper utilities */
+.font-masthead {
+  font-family: "Libre Caslon Text", Georgia, serif;
+}
+
+.font-headline-lead {
+  font-family: "Libre Caslon Text", Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+.font-headline-lg {
+  font-family: "Libre Caslon Text", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.font-headline-md {
+  font-family: "Libre Caslon Text", Georgia, serif;
+}
+
+.font-headline-sm {
+  font-family: "Libre Caslon Text", Georgia, serif;
+}
+
+.font-body-lg {
+  font-family: "Source Serif 4", Georgia, serif;
+}
+
+.font-body-md {
+  font-family: "Source Serif 4", Georgia, serif;
+}
+
+.font-body-sm {
+  font-family: "Source Serif 4", Georgia, serif;
+}
+
+.font-label-section {
+  font-family: "Libre Franklin", sans-serif;
+  letter-spacing: 0.08em;
+}
+
+.font-label-byline {
+  font-family: "Libre Franklin", sans-serif;
+}
+
+.font-caption {
+  font-family: "Libre Franklin", sans-serif;
+}
+
+/* Material symbol styling helper */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3;
+}
