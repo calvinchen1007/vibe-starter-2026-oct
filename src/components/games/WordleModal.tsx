@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, RotateCcw, Share2, Trophy } from 'lucide-react';
+import { X, RotateCcw, Share2, Trophy, Volume2 } from 'lucide-react';
+import { sounds } from '../../utils/audio';
 
 interface WordleModalProps {
   onClose: () => void;
 }
 
-const TARGET_WORDS = ['PRESS', 'TIMES', 'SWISS', 'MEDIA', 'PAPER', 'PRINT', 'STORY', 'WATCH'];
+const TARGET_WORDS = ['PRESS', 'TIMES', 'SWISS', 'MEDIA', 'PAPER', 'PRINT', 'STORY', 'WATCH', 'DEALS', 'CHIPS'];
 const MAX_ATTEMPTS = 6;
 const WORD_LENGTH = 5;
 
 export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
-  const [targetWord, setTargetWord] = useState<string>('PRESS');
+  const [targetWord, setTargetWord] = useState<string>('TIMES');
   const [guesses, setGuesses] = useState<string[]>([]);
   const [currentGuess, setCurrentGuess] = useState<string>('');
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
+  const [shakeRow, setShakeRow] = useState<boolean>(false);
 
   useEffect(() => {
-    // Pick today's word
     const word = TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)];
     setTargetWord(word);
   }, []);
@@ -33,24 +34,32 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
 
       if (key === 'ENTER') {
         if (currentGuess.length !== WORD_LENGTH) {
+          sounds.playError();
+          setShakeRow(true);
+          setTimeout(() => setShakeRow(false), 500);
           showToast('Not enough letters');
           return;
         }
 
+        sounds.playFlip();
         const newGuesses = [...guesses, currentGuess];
         setGuesses(newGuesses);
         setCurrentGuess('');
 
         if (currentGuess === targetWord) {
           setGameStatus('won');
+          sounds.playSuccess();
           showToast('Genius! Splendid victory.');
         } else if (newGuesses.length >= MAX_ATTEMPTS) {
           setGameStatus('lost');
+          sounds.playError();
           showToast(`The word was ${targetWord}`);
         }
       } else if (key === 'BACKSPACE' || key === 'DEL') {
+        sounds.playKeyTap();
         setCurrentGuess((prev) => prev.slice(0, -1));
       } else if (/^[A-Z]$/.test(key) && currentGuess.length < WORD_LENGTH) {
+        sounds.playKeyTap();
         setCurrentGuess((prev) => prev + key);
       }
     },
@@ -76,6 +85,7 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
   }, [handleKey]);
 
   const resetGame = () => {
+    sounds.playFlip();
     const newWord = TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)];
     setTargetWord(newWord);
     setGuesses([]);
@@ -84,32 +94,21 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
     setMessage('');
   };
 
-  // Helper for letter status in a guess
   const getLetterStatus = (guess: string, index: number): 'correct' | 'present' | 'absent' => {
     const letter = guess[index];
-    if (targetWord[index] === letter) {
-      return 'correct';
-    }
-    if (targetWord.includes(letter)) {
-      return 'present';
-    }
+    if (targetWord[index] === letter) return 'correct';
+    if (targetWord.includes(letter)) return 'present';
     return 'absent';
   };
 
-  // Status for keyboard keys
   const getKeyStatus = (key: string): 'correct' | 'present' | 'absent' | 'default' => {
     let status: 'correct' | 'present' | 'absent' | 'default' = 'default';
     for (const g of guesses) {
       for (let i = 0; i < g.length; i++) {
         if (g[i] === key) {
-          if (targetWord[i] === key) {
-            return 'correct';
-          }
-          if (targetWord.includes(key)) {
-            status = 'present';
-          } else if (status !== 'present') {
-            status = 'absent';
-          }
+          if (targetWord[i] === key) return 'correct';
+          if (targetWord.includes(key)) status = 'present';
+          else if (status !== 'present') status = 'absent';
         }
       }
     }
@@ -123,7 +122,7 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-md bg-white border border-[#121212] shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#e2e2e2]">
@@ -145,7 +144,10 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
               <RotateCcw className="w-4 h-4" />
             </button>
             <button
-              onClick={onClose}
+              onClick={() => {
+                sounds.playFlip();
+                onClose();
+              }}
               className="p-1.5 text-[#5e5e5e] hover:text-[#121212] transition-colors"
             >
               <X className="w-5 h-5" />
@@ -173,7 +175,10 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
                 : '     ';
 
               return (
-                <div key={rowIndex} className="grid grid-cols-5 gap-1.5">
+                <div
+                  key={rowIndex}
+                  className={`grid grid-cols-5 gap-1.5 ${isCurrentRow && shakeRow ? 'animate-shake' : ''}`}
+                >
                   {Array.from({ length: WORD_LENGTH }).map((_, colIndex) => {
                     const char = rowWord[colIndex]?.trim() || '';
                     let bgColor = 'bg-white border-[#d3d6da] text-[#121212]';
@@ -188,13 +193,13 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
                         bgColor = 'bg-[#787c7e] text-white border-[#787c7e]';
                       }
                     } else if (char) {
-                      bgColor = 'bg-white border-[#878a8c] text-[#121212] scale-102 transition-transform';
+                      bgColor = 'bg-white border-[#878a8c] text-[#121212]';
                     }
 
                     return (
                       <div
                         key={colIndex}
-                        className={`aspect-square flex items-center justify-center font-bold text-2xl border-2 uppercase select-none transition-all duration-200 ${bgColor}`}
+                        className={`aspect-square flex items-center justify-center font-bold text-2xl border-2 uppercase select-none transition-all duration-300 ${bgColor}`}
                       >
                         {char}
                       </div>
@@ -207,7 +212,7 @@ export const WordleModal: React.FC<WordleModalProps> = ({ onClose }) => {
 
           {/* Game Over Message */}
           {gameStatus !== 'playing' && (
-            <div className="my-2 p-3 bg-[#faf0ea] border border-[#121212] w-full max-w-xs text-center space-y-2">
+            <div className="my-2 p-3 bg-[#faf0ea] border border-[#121212] w-full max-w-xs text-center space-y-2 animate-fade-in">
               <div className="flex items-center justify-center gap-1 text-[#121212]">
                 <Trophy className="w-4 h-4 text-amber-600" />
                 <span className="font-label-section text-xs uppercase font-bold">

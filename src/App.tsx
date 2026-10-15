@@ -27,13 +27,19 @@ import {
   TrendingUp,
   X,
   Share2,
-  Check
+  Check,
+  Printer,
+  Keyboard,
+  ChevronDown
 } from 'lucide-react';
+import { sounds } from './utils/audio';
 
 export default function App() {
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedSection, setSelectedSection] = useState<string>('All');
   const [currentEdition, setCurrentEdition] = useState<string>('U.S.');
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
   const [bookmarks, setBookmarks] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('nyt_bookmarks');
@@ -43,6 +49,42 @@ export default function App() {
     }
   });
   const [toastMessage, setToastMessage] = useState<string>('');
+
+  // Scroll detection for Sticky Header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 240);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
+      if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key === 'k')) {
+        e.preventDefault();
+        sounds.playFlip();
+        setActiveModal({ type: 'search' });
+      } else if (e.key === '?') {
+        setShowShortcutsHelp((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        setActiveModal(null);
+        setShowShortcutsHelp(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     try {
@@ -61,12 +103,14 @@ export default function App() {
     setBookmarks((prev) => {
       const exists = prev.includes(id);
       const next = exists ? prev.filter((b) => b !== id) : [...prev, id];
+      sounds.playFlip();
       showToast(exists ? 'Article removed from reading list' : 'Saved to Reading List');
       return next;
     });
   };
 
   const openArticle = (article: Article) => {
+    sounds.playFlip();
     setActiveModal({ type: 'article', article });
   };
 
@@ -130,6 +174,7 @@ export default function App() {
   ];
 
   const handleNavClick = (val: string) => {
+    sounds.playFlip();
     if (val === 'Games') {
       setActiveModal({ type: 'wordle' });
     } else if (val === 'Cooking') {
@@ -146,11 +191,102 @@ export default function App() {
     <div className="bg-[#ffffff] font-body-md text-[#1a1c1c] antialiased min-h-screen selection:bg-[#faf0ea]">
       {/* Toast notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#121212] text-white px-4 py-2.5 text-xs font-label-section uppercase tracking-wider shadow-xl flex items-center gap-2 border border-neutral-700">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#121212] text-white px-4 py-2.5 text-xs font-label-section uppercase tracking-wider shadow-xl flex items-center gap-2 border border-neutral-700 animate-fade-in">
           <Check className="w-3.5 h-3.5 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* STICKY COMPACT PRO HEADER ON SCROLL */}
+      <div
+        className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#121212] shadow-xs transition-transform duration-300 ${
+          isScrolled ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 h-11 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'todaysPaper' });
+              }}
+              className="p-1 text-[#121212] hover:opacity-70"
+              title="Today's Paper Sections"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'search' });
+              }}
+              className="p-1 text-[#121212] hover:opacity-70 flex items-center gap-1.5 text-xs font-label-section uppercase tracking-wider text-[#5e5e5e]"
+              title="Search Archive"
+            >
+              <Search className="w-3.5 h-3.5 text-[#121212]" />
+              <span className="hidden sm:inline">Search</span>
+            </button>
+
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setSelectedSection('All');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="nyt-blackletter text-2xl text-[#121212] hover:opacity-85 select-none"
+            >
+              The New York Times
+            </a>
+          </div>
+
+          <nav className="hidden lg:flex items-center gap-4 font-label-section text-[11px] uppercase tracking-wider">
+            {sectionsNav.slice(0, 7).map((sec) => (
+              <button
+                key={sec.label}
+                onClick={() => handleNavClick(sec.val)}
+                className={`hover:text-[#121212] transition-colors ${
+                  selectedSection === sec.val ? 'font-bold text-[#121212] underline' : 'text-[#5e5e5e]'
+                }`}
+              >
+                {sec.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'liveUpdates' });
+              }}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#D0021B] text-white font-label-section text-[10px] uppercase font-bold tracking-wider hover:bg-red-700"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              Live
+            </button>
+            <button
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'readingList' });
+              }}
+              className="flex items-center gap-1 px-2 py-1 border border-[#e2e2e2] hover:border-[#121212] text-[10px] font-label-section uppercase font-bold"
+            >
+              <Bookmark className="w-3 h-3 text-amber-700 fill-amber-700" />
+              <span>Saved ({bookmarks.length})</span>
+            </button>
+            <button
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'subscribe' });
+              }}
+              className="bg-[#121212] text-white font-label-section text-[10px] uppercase font-bold px-2.5 py-1 hover:bg-neutral-800"
+            >
+              Subscribe
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* HEADER */}
       <header className="w-full bg-[#ffffff] border-b border-[#e2e2e2]">
@@ -160,15 +296,21 @@ export default function App() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => setActiveModal({ type: 'todaysPaper' })}
-                  title="Today's Paper Sections"
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'todaysPaper' });
+                  }}
+                  title="Sections"
                   className="p-1 -ml-1 text-[#1a1c1c] hover:text-black transition-colors"
                 >
                   <Menu className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setActiveModal({ type: 'search' })}
-                  title="Search Archive"
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'search' });
+                  }}
+                  title="Search Archive (Press /)"
                   className="p-1 text-[#1a1c1c] hover:text-black transition-colors"
                 >
                   <Search className="w-4 h-4" />
@@ -182,6 +324,7 @@ export default function App() {
                     {ed !== 'U.S.' && <span className="text-[#c4c7c7]">•</span>}
                     <button
                       onClick={() => {
+                        sounds.playFlip();
                         setCurrentEdition(ed);
                         showToast(`Switched to ${ed} Edition`);
                       }}
@@ -199,7 +342,10 @@ export default function App() {
             {/* Financial & User Controls */}
             <div className="flex items-center gap-3 text-xs">
               <button
-                onClick={() => setActiveModal({ type: 'markets' })}
+                onClick={() => {
+                  sounds.playFlip();
+                  setActiveModal({ type: 'markets' });
+                }}
                 className="hidden sm:flex items-center gap-2 border-r border-[#e2e2e2] pr-3 hover:opacity-80 transition-opacity"
               >
                 <span className="font-semibold text-[#1a1c1c]">S&P 500</span>
@@ -212,7 +358,10 @@ export default function App() {
 
               {/* Reading list bookmark counter */}
               <button
-                onClick={() => setActiveModal({ type: 'readingList' })}
+                onClick={() => {
+                  sounds.playFlip();
+                  setActiveModal({ type: 'readingList' });
+                }}
                 title="View Reading List"
                 className="flex items-center gap-1 px-2 py-0.5 border border-[#e2e2e2] hover:border-[#121212] transition-colors text-[10px] uppercase font-bold"
               >
@@ -222,21 +371,30 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => setActiveModal({ type: 'subscribe' })}
+                onClick={() => {
+                  sounds.playFlip();
+                  setActiveModal({ type: 'subscribe' });
+                }}
                 className="bg-[#121212] text-white font-label-section text-[10px] tracking-wider uppercase px-2.5 py-1 hover:bg-neutral-800 transition-colors shrink-0"
               >
                 Subscribe for $1/week
               </button>
 
               <button
-                onClick={() => setActiveModal({ type: 'subscribe' })}
+                onClick={() => {
+                  sounds.playFlip();
+                  setActiveModal({ type: 'subscribe' });
+                }}
                 className="border border-[#121212] text-[#1a1c1c] font-label-section text-[10px] tracking-wider uppercase px-2 py-0.5 hover:bg-[#e8e8e8] transition-colors"
               >
                 Log In
               </button>
 
               <button
-                onClick={() => setActiveModal({ type: 'readingList' })}
+                onClick={() => {
+                  sounds.playFlip();
+                  setActiveModal({ type: 'readingList' });
+                }}
                 className="w-7 h-7 rounded-full bg-[#121212] text-white flex items-center justify-center hover:opacity-85"
                 title="Account & Reading List"
               >
@@ -255,7 +413,10 @@ export default function App() {
                 Wednesday, May 24, 2024
               </span>
               <button
-                onClick={() => setActiveModal({ type: 'todaysPaper' })}
+                onClick={() => {
+                  sounds.playFlip();
+                  setActiveModal({ type: 'todaysPaper' });
+                }}
                 className="font-label-byline text-xs text-[#5e5e5e] hover:underline cursor-pointer text-left w-fit"
               >
                 Today’s Paper
@@ -267,6 +428,7 @@ export default function App() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
+                  sounds.playFlip();
                   setSelectedSection('All');
                 }}
                 className="inline-block"
@@ -294,7 +456,7 @@ export default function App() {
                 <button
                   key={sec.label}
                   onClick={() => handleNavClick(sec.val)}
-                  className={`py-0.5 transition-colors ${
+                  className={`py-0.5 transition-colors cursor-pointer ${
                     selectedSection === sec.val
                       ? 'bg-[#121212] text-white px-2 font-bold'
                       : 'text-[#444748] hover:text-[#1a1c1c]'
@@ -309,20 +471,29 @@ export default function App() {
           {/* Secondary Breaking/Puzzles Mini Ribbon */}
           <div className="py-1.5 flex items-center justify-center gap-4 text-xs font-label-section overflow-x-auto whitespace-nowrap">
             <span
-              onClick={() => setActiveModal({ type: 'liveUpdates' })}
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'liveUpdates' });
+              }}
               className="bg-[#D0021B] text-white font-bold px-1.5 py-0.5 text-[9px] tracking-wider uppercase cursor-pointer hover:bg-red-700 transition-colors"
             >
               Live
             </span>
             <button
-              onClick={() => setActiveModal({ type: 'liveUpdates' })}
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'liveUpdates' });
+              }}
               className="text-[#444748] hover:text-[#1a1c1c] hover:underline"
             >
               Election 2024
             </button>
             <span className="text-[#e2e2e2]">•</span>
             <button
-              onClick={() => setActiveModal({ type: 'liveUpdates' })}
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'liveUpdates' });
+              }}
               className="text-[#444748] hover:text-[#1a1c1c] hover:underline"
             >
               Israel-Hamas War
@@ -343,14 +514,20 @@ export default function App() {
             </button>
             <span className="text-[#e2e2e2]">•</span>
             <button
-              onClick={() => setActiveModal({ type: 'miniCrossword' })}
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'miniCrossword' });
+              }}
               className="text-[#444748] hover:text-[#1a1c1c] hover:underline font-semibold"
             >
               Crossword
             </button>
             <span className="text-[#e2e2e2]">•</span>
             <button
-              onClick={() => setActiveModal({ type: 'spellingBee' })}
+              onClick={() => {
+                sounds.playFlip();
+                setActiveModal({ type: 'spellingBee' });
+              }}
               className="text-[#444748] hover:text-[#1a1c1c] hover:underline font-semibold"
             >
               Spelling Bee
@@ -364,13 +541,16 @@ export default function App() {
         <div className="flex flex-col w-full">
           {/* Active section filter banner (if not 'All') */}
           {selectedSection !== 'All' && (
-            <div className="bg-[#faf0ea] border-b border-[#121212] py-2 px-4">
+            <div className="bg-[#faf0ea] border-b border-[#121212] py-2 px-4 animate-fade-in">
               <div className="max-w-7xl mx-auto flex items-center justify-between">
                 <span className="font-label-section text-xs uppercase font-bold tracking-widest text-[#121212]">
                   Viewing Section: {selectedSection} ({filteredArticles.length} stories)
                 </span>
                 <button
-                  onClick={() => setSelectedSection('All')}
+                  onClick={() => {
+                    sounds.playFlip();
+                    setSelectedSection('All');
+                  }}
                   className="font-label-section text-xs uppercase underline font-semibold text-[#5e5e5e] hover:text-[#121212]"
                 >
                   Reset to Front Page
@@ -384,28 +564,40 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:items-center justify-between gap-2">
               <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap py-0.5">
                 <button
-                  onClick={() => setActiveModal({ type: 'liveUpdates' })}
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'liveUpdates' });
+                  }}
                   className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#D0021B] text-white font-label-section text-[10px] uppercase font-bold tracking-wider hover:bg-red-700 transition-colors shrink-0"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                   Live
                 </button>
                 <span
-                  onClick={() => setActiveModal({ type: 'liveUpdates' })}
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'liveUpdates' });
+                  }}
                   className="font-masthead text-[15px] text-[#121212] font-bold hover:underline cursor-pointer"
                 >
                   Key Developments Across Geopolitical Talks and Regional Security
                 </span>
                 <span className="text-[#5e5e5e] text-xs">•</span>
                 <button
-                  onClick={() => setActiveModal({ type: 'liveUpdates' })}
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'liveUpdates' });
+                  }}
                   className="font-body-sm text-xs text-[#444748] hover:text-[#121212] hover:underline"
                 >
                   Cease-fire discussions resume in Cairo
                 </button>
                 <span className="text-[#5e5e5e] text-xs">•</span>
                 <button
-                  onClick={() => setActiveModal({ type: 'liveUpdates' })}
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'liveUpdates' });
+                  }}
                   className="font-body-sm text-xs text-[#444748] hover:text-[#121212] hover:underline"
                 >
                   Aid convoy clearance protocols expanded
@@ -415,7 +607,10 @@ export default function App() {
               <div className="flex items-center gap-2 text-right shrink-0">
                 <span className="font-label-byline text-[11px] text-[#5e5e5e]">Updated 8m ago</span>
                 <button
-                  onClick={() => setActiveModal({ type: 'liveUpdates' })}
+                  onClick={() => {
+                    sounds.playFlip();
+                    setActiveModal({ type: 'liveUpdates' });
+                  }}
                   className="font-label-section text-[11px] uppercase tracking-wider text-[#121212] font-bold hover:underline flex items-center"
                 >
                   See All Updates <span className="material-symbols-outlined text-[14px] ml-0.5">arrow_forward</span>
@@ -519,7 +714,7 @@ export default function App() {
                   >
                     <img
                       alt="David Leonhardt"
-                      className="w-12 h-12 rounded-full object-cover shrink-0"
+                      className="w-12 h-12 rounded-full object-cover shrink-0 filter grayscale"
                       src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaR-usMWX_OhSswIl8ca1uW6FZmeNALgSDNH77Ku76B53TU-b_MWYbs2bPigRnuIcGgGFTuJZsAh4YithR5Anxamz6eEyE99X0-BhxE-bMtMCHioap0cyM3hXlGIw5ILpB7AzBJ_7b8ymE9MtF120qfKYmvRCtHGFyK89fJm_B-uRy6lYKtBUsN1Jpq5DOrCIPDPTAbahfYUPg2Hz1Djq-nFN4Hp47Mx2kz5I5h4-VyWRf2uQyat_G"
                     />
                     <div className="space-y-1">
@@ -536,7 +731,10 @@ export default function App() {
                       Delivered every weekday
                     </span>
                     <button
-                      onClick={() => setActiveModal({ type: 'newsletter' })}
+                      onClick={() => {
+                        sounds.playFlip();
+                        setActiveModal({ type: 'newsletter' });
+                      }}
                       className="bg-[#121212] text-white font-label-section text-[10px] uppercase font-bold px-2 py-1 tracking-wider hover:bg-neutral-800 transition-colors"
                     >
                       Sign Up
@@ -571,7 +769,7 @@ export default function App() {
                     >
                       <img
                         alt="Geneva Summit plenary session"
-                        className="w-full h-full object-cover hover:scale-[1.01] transition-transform duration-500"
+                        className="w-full h-full object-cover hover:scale-[1.015] transition-transform duration-500"
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIpmwa4zy7ESg64xFAvwH5O4JqNu7qiSV8nMwdx_rLQ_OnkR1NtXN-besw88dMBYYEyg_tLtDHvuIVyBpSL_E_RNN9ubsVc-572xxSDUsiqHtCtj4m03zh5GCoz75sZU2No9qi3rL4h9GOepM9dsRjAo9FYrFw5Ki14zLG7AzdvUmA6F__EjqXEzrMGTRe_E6t6YLi1nOz4XtT7RwZsA9bzzuazBWqQED2mdwwc-LdpXVI7xqUhykM"
                       />
                     </div>
@@ -778,7 +976,10 @@ export default function App() {
                   <div className="space-y-2">
                     {/* Wordle */}
                     <div
-                      onClick={() => setActiveModal({ type: 'wordle' })}
+                      onClick={() => {
+                        sounds.playFlip();
+                        setActiveModal({ type: 'wordle' });
+                      }}
                       className="flex items-center justify-between p-2 hover:bg-[#f4f3f3] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
@@ -801,7 +1002,10 @@ export default function App() {
 
                     {/* Spelling Bee */}
                     <div
-                      onClick={() => setActiveModal({ type: 'spellingBee' })}
+                      onClick={() => {
+                        sounds.playFlip();
+                        setActiveModal({ type: 'spellingBee' });
+                      }}
                       className="flex items-center justify-between p-2 hover:bg-[#f4f3f3] transition-colors group border-t border-[#e2e2e2] cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
@@ -824,7 +1028,10 @@ export default function App() {
 
                     {/* The Mini */}
                     <div
-                      onClick={() => setActiveModal({ type: 'miniCrossword' })}
+                      onClick={() => {
+                        sounds.playFlip();
+                        setActiveModal({ type: 'miniCrossword' });
+                      }}
                       className="flex items-center justify-between p-2 hover:bg-[#f4f3f3] transition-colors group border-t border-[#e2e2e2] cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
@@ -1229,6 +1436,18 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center gap-4 font-label-section text-[11px] uppercase tracking-wider">
+              <button
+                onClick={() => setShowShortcutsHelp(true)}
+                className="text-[#444748] hover:text-[#1a1c1c] flex items-center gap-1 font-semibold"
+              >
+                <Keyboard className="w-3.5 h-3.5" /> Shortcuts (?)
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="text-[#444748] hover:text-[#1a1c1c] flex items-center gap-1 font-semibold"
+              >
+                <Printer className="w-3.5 h-3.5" /> Print Broadsheet
+              </button>
               <a href="#" className="text-[#444748] hover:text-[#1a1c1c] hover:underline">
                 NYT Licensing
               </a>
@@ -1335,6 +1554,42 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* KEYBOARD SHORTCUTS MODAL */}
+      {showShortcutsHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white border-2 border-[#121212] p-6 max-w-sm w-full space-y-4">
+            <div className="flex justify-between items-center border-b border-[#e2e2e2] pb-2">
+              <h3 className="font-masthead font-bold text-lg text-[#121212]">Keyboard Shortcuts</h3>
+              <button onClick={() => setShowShortcutsHelp(false)}>
+                <X className="w-4 h-4 text-[#5e5e5e]" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs font-serif divide-y divide-[#e2e2e2]">
+              <div className="flex justify-between py-1">
+                <span>Search Archive</span>
+                <span className="font-mono bg-neutral-100 px-1.5 py-0.5 border">/ or ⌘K</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Play Wordle</span>
+                <span className="font-mono bg-neutral-100 px-1.5 py-0.5 border">Click 'W'</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Spelling Bee</span>
+                <span className="font-mono bg-neutral-100 px-1.5 py-0.5 border">Click 🐝</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Today’s Paper</span>
+                <span className="font-mono bg-neutral-100 px-1.5 py-0.5 border">Click Masthead</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Close any view</span>
+                <span className="font-mono bg-neutral-100 px-1.5 py-0.5 border">Esc</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ACTIVE MODALS & DRAWERS */}
       {activeModal?.type === 'article' && (

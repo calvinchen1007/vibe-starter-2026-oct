@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, RotateCcw, Shuffle, Delete, Trophy, CheckCircle2 } from 'lucide-react';
+import { X, RotateCcw, Shuffle, Delete, Trophy } from 'lucide-react';
+import { sounds } from '../../utils/audio';
 
 interface SpellingBeeModalProps {
   onClose: () => void;
@@ -8,7 +9,6 @@ interface SpellingBeeModalProps {
 const CENTER_LETTER = 'P';
 const OUTER_LETTERS = ['A', 'L', 'E', 'N', 'R', 'Y'];
 
-// Valid curated words for this set
 const VALID_WORDS = [
   'PLAN', 'PLANE', 'PLANER', 'PLANET', 'PLANETARY', 'PLENARY', 'PEARL', 'PRAY',
   'PRAYER', 'PAYER', 'PALE', 'PANEL', 'PALER', 'PARLEY', 'PEAR', 'PLEA', 'PLEAD',
@@ -28,45 +28,52 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
   };
 
   const handleLetterClick = (char: string) => {
+    sounds.playKeyTap();
     if (inputWord.length < 15) {
       setInputWord((prev) => prev + char);
     }
   };
 
   const handleDelete = () => {
+    sounds.playKeyTap();
     setInputWord((prev) => prev.slice(0, -1));
   };
 
   const handleShuffle = () => {
+    sounds.playFlip();
     setLetters((prev) => [...prev].sort(() => Math.random() - 0.5));
   };
 
   const handleSubmit = () => {
     const word = inputWord.toUpperCase();
     if (word.length < 4) {
+      sounds.playError();
       showToast('Too short (minimum 4 letters)');
       return;
     }
     if (!word.includes(CENTER_LETTER)) {
+      sounds.playError();
       showToast(`Missing center letter "${CENTER_LETTER}"`);
       return;
     }
     if (foundWords.includes(word)) {
+      sounds.playError();
       showToast('Already found');
       return;
     }
     if (VALID_WORDS.includes(word)) {
       const earned = word.length === 4 ? 1 : word.length;
+      sounds.playSuccess();
       setPoints((prev) => prev + earned);
       setFoundWords((prev) => [word, ...prev]);
       setInputWord('');
       showToast(`Awesome! +${earned} points`);
     } else {
+      sounds.playError();
       showToast('Not in word list');
     }
   };
 
-  // Rank determination
   const getRank = (score: number) => {
     if (score >= 60) return 'Genius';
     if (score >= 40) return 'Amazing';
@@ -77,7 +84,7 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-lg bg-white border border-[#121212] shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#e2e2e2]">
@@ -91,7 +98,10 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              sounds.playFlip();
+              onClose();
+            }}
             className="p-1.5 text-[#5e5e5e] hover:text-[#121212] transition-colors"
           >
             <X className="w-5 h-5" />
@@ -136,7 +146,7 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
                   {inputWord.split('').map((ch, idx) => (
                     <span
                       key={idx}
-                      className={ch === CENTER_LETTER ? 'text-[#f7da21] font-black' : 'text-[#121212]'}
+                      className={ch === CENTER_LETTER ? 'text-[#eab308] font-black' : 'text-[#121212]'}
                     >
                       {ch}
                     </span>
@@ -152,7 +162,6 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
 
             {/* Honeycomb arrangement */}
             <div className="relative w-56 h-56 flex items-center justify-center">
-              {/* Center Key */}
               <button
                 onClick={() => handleLetterClick(CENTER_LETTER)}
                 className="absolute w-14 h-14 bg-[#f7da21] text-[#121212] font-black text-xl rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-xs z-10"
@@ -160,10 +169,9 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
                 {CENTER_LETTER}
               </button>
 
-              {/* 6 Outer Keys in hexagonal ring */}
               {letters.map((char, index) => {
                 const angle = (index * 60 - 30) * (Math.PI / 180);
-                const radius = 64; // px
+                const radius = 64;
                 const x = radius * Math.cos(angle);
                 const y = radius * Math.sin(angle);
 
@@ -184,20 +192,20 @@ export const SpellingBeeModal: React.FC<SpellingBeeModalProps> = ({ onClose }) =
             <div className="flex items-center gap-3 mt-6">
               <button
                 onClick={handleDelete}
-                className="px-3 py-1.5 border border-[#121212] text-xs font-label-section uppercase tracking-wider font-semibold hover:bg-neutral-100 flex items-center gap-1"
+                className="px-3 py-1.5 border border-[#121212] text-xs font-label-section uppercase tracking-wider font-semibold hover:bg-neutral-100 flex items-center gap-1 active:scale-95"
               >
                 <Delete className="w-3.5 h-3.5" /> Delete
               </button>
               <button
                 onClick={handleShuffle}
-                className="p-2 border border-[#121212] text-xs hover:bg-neutral-100 rounded-full"
+                className="p-2 border border-[#121212] text-xs hover:bg-neutral-100 rounded-full active:scale-95"
                 title="Shuffle outer letters"
               >
                 <Shuffle className="w-4 h-4" />
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-4 py-1.5 bg-[#121212] text-white text-xs font-label-section uppercase tracking-wider font-bold hover:bg-neutral-800"
+                className="px-4 py-1.5 bg-[#121212] text-white text-xs font-label-section uppercase tracking-wider font-bold hover:bg-neutral-800 active:scale-95"
               >
                 Enter
               </button>

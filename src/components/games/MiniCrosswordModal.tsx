@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, RotateCcw, CheckCircle2, HelpCircle } from 'lucide-react';
+import { sounds } from '../../utils/audio';
 
 interface MiniCrosswordModalProps {
   onClose: () => void;
 }
-
-// 5x5 grid puzzle
-// Solution words:
-// Across:
-// 1: T I M E S
-// 6: H O U S E
-// 7: E A R T H
-// 8: S W I S S
-// 9: S E E D S
 
 const SOLUTION: string[][] = [
   ['T', 'I', 'M', 'E', 'S'],
@@ -48,7 +40,6 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
   const [direction, setDirection] = useState<'across' | 'down'>('across');
   const [seconds, setSeconds] = useState<number>(0);
   const [isSolved, setIsSolved] = useState<boolean>(false);
-  const [checked, setChecked] = useState<boolean>(false);
 
   useEffect(() => {
     if (isSolved) return;
@@ -63,6 +54,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
   };
 
   const handleCellClick = (r: number, c: number) => {
+    sounds.playKeyTap();
     if (selectedCell.r === r && selectedCell.c === c) {
       setDirection((d) => (d === 'across' ? 'down' : 'across'));
     } else {
@@ -75,11 +67,11 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
     const { r, c } = selectedCell;
 
     if (e.key === 'Backspace') {
+      sounds.playKeyTap();
       const newGrid = grid.map((row) => [...row]);
       newGrid[r][c] = '';
       setGrid(newGrid);
 
-      // Move back
       if (direction === 'across' && c > 0) {
         setSelectedCell({ r, c: c - 1 });
       } else if (direction === 'down' && r > 0) {
@@ -96,14 +88,13 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
 
     const char = e.key.toUpperCase();
     if (/^[A-Z]$/.test(char)) {
+      sounds.playKeyTap();
       const newGrid = grid.map((row) => [...row]);
       newGrid[r][c] = char;
       setGrid(newGrid);
 
-      // Check if grid is full and matches solution
       checkCompletion(newGrid);
 
-      // Move forward
       if (direction === 'across' && c < 4) {
         setSelectedCell({ r, c: c + 1 });
       } else if (direction === 'down' && r < 4) {
@@ -123,15 +114,18 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
     }
     if (allFilled && allCorrect) {
       setIsSolved(true);
+      sounds.playSuccess();
     }
   };
 
   const revealPuzzle = () => {
+    sounds.playFlip();
     setGrid(SOLUTION);
     setIsSolved(true);
   };
 
   const resetPuzzle = () => {
+    sounds.playFlip();
     setGrid(
       Array(5)
         .fill('')
@@ -139,7 +133,6 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
     );
     setSelectedCell({ r: 0, c: 0 });
     setIsSolved(false);
-    setChecked(false);
     setSeconds(0);
   };
 
@@ -149,7 +142,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
       : CLUES_DOWN[selectedCell.c] || CLUES_DOWN[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4">
       <div
         className="relative w-full max-w-lg bg-white border border-[#121212] shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto focus:outline-hidden"
         onKeyDown={handleKeyDown}
@@ -171,7 +164,10 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
               ⏱ {formatTime(seconds)}
             </span>
             <button
-              onClick={onClose}
+              onClick={() => {
+                sounds.playFlip();
+                onClose();
+              }}
               className="p-1.5 text-[#5e5e5e] hover:text-[#121212] transition-colors"
             >
               <X className="w-5 h-5" />
@@ -188,7 +184,10 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
             <span>{currentClue?.clue}</span>
           </div>
           <button
-            onClick={() => setDirection((d) => (d === 'across' ? 'down' : 'across'))}
+            onClick={() => {
+              sounds.playFlip();
+              setDirection((d) => (d === 'across' ? 'down' : 'across'));
+            }}
             className="text-[10px] font-label-section uppercase font-bold text-[#5e5e5e] hover:text-[#121212]"
           >
             Switch to {direction === 'across' ? 'Down' : 'Across'}
@@ -197,7 +196,6 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
 
         {/* Puzzle Board & Clues */}
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-          {/* 5x5 Crossword Grid */}
           <div className="flex flex-col items-center">
             <div className="grid grid-cols-5 gap-0 border-2 border-[#121212] bg-[#121212] shadow-sm">
               {grid.map((row, r) =>
@@ -235,9 +233,8 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
               )}
             </div>
 
-            {/* Victory message */}
             {isSolved && (
-              <div className="mt-3 p-2 bg-emerald-50 border border-emerald-600 text-center w-full">
+              <div className="mt-3 p-2 bg-emerald-50 border border-emerald-600 text-center w-full animate-fade-in">
                 <div className="flex items-center justify-center gap-1 text-emerald-800 font-bold text-xs uppercase font-label-section">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   Congratulations! Solved in {formatTime(seconds)}
@@ -245,7 +242,6 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex items-center gap-2 mt-3">
               <button
                 onClick={resetPuzzle}
@@ -262,7 +258,6 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
             </div>
           </div>
 
-          {/* Clues Column */}
           <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
             <div>
               <h4 className="font-label-section text-[11px] uppercase tracking-wider font-bold text-[#121212] border-b border-[#121212] pb-0.5 mb-1.5">
@@ -275,6 +270,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
                     onClick={() => {
                       setSelectedCell({ r: idx, c: 0 });
                       setDirection('across');
+                      sounds.playKeyTap();
                     }}
                     className={`cursor-pointer p-1 rounded-none hover:bg-neutral-100 ${
                       direction === 'across' && selectedCell.r === idx
@@ -300,6 +296,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ onClose 
                     onClick={() => {
                       setSelectedCell({ r: 0, c: idx });
                       setDirection('down');
+                      sounds.playKeyTap();
                     }}
                     className={`cursor-pointer p-1 rounded-none hover:bg-neutral-100 ${
                       direction === 'down' && selectedCell.c === idx
